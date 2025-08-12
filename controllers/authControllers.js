@@ -1,7 +1,8 @@
 import bcrypt from "bcrypt"; // make sure bcrypt is imported
 
 import { ROLES } from "../config/roles_list.js"; // adjust path
-
+import { createTokens } from "../utils/jwt.js";
+ // ensure cookie-parser is required
 // Temporary mock "database"
 let users = [];
 
@@ -54,30 +55,43 @@ export const login = async (req, res) => {
   try {
     const { employeeId, password } = req.body;
 
-    // Find user by employeeId
-    const existingUser = users.find(
-      (user) => user.employeeId === employeeId
-    );
+    const existingUser = users.find(user => user.employeeId === employeeId);
 
     if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if password matches
     const isPasswordValid = await bcrypt.compare(password, existingUser.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Remove password from user data before sending response
     const { password: _, ...userData } = existingUser;
 
+    const { accessToken, refreshToken } = createTokens(userData);
+
+      res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 24 * 60 * 60 * 1000 // 30 day
+    });
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 24 * 60 * 60 * 30 * 1000 // 30 day
+    });
+    // Send response with user data and tokens
     res.status(200).json({
       message: "User logged in successfully (test mode)",
       user: userData,
+      accessToken,
+      refreshToken
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
