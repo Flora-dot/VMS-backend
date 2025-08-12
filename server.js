@@ -1,5 +1,6 @@
 import express from 'express';
 import visitorsRouter from './routes/visitorsRoutes.js'; // Import the visitors router
+import authRoutes from './routes/authRoutes.js'; // Import the auth routes
 
 import bodyParser from 'body-parser';
 
@@ -9,6 +10,8 @@ const PORT = 5000;
 app.use(bodyParser.json());
 
 app.use('/visitors', visitorsRouter); // Use the visitors router for '/visitors' endpoint
+
+app.use('/auth', authRoutes);
 
 app.get('/', (req, res) => res.send('Welcome to the VMS Backend!'));
 
